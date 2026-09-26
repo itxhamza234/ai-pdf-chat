@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 class UserSignup(BaseModel):
     name: str
@@ -8,3 +9,11 @@ class UserSignup(BaseModel):
 class OTPVerify(BaseModel):
     email: EmailStr
     otp: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
