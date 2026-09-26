@@ -4,12 +4,14 @@ from sqlalchemy import text
 from models.user import User
 from models.otp import OTP
 from routers.auth import router as auth_router
+from routers.user import router as user_router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(user_router, prefix="/user", tags=["User"])
 
 @app.get("/health")
 def health():
