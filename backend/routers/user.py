@@ -4,6 +4,8 @@ from core.database import SessionLocal
 from core.security import get_current_user_id
 from models.user import User
 from schemas.user import UserUpdate
+from schemas.user import UserUpdate, ChangePassword
+from core.security import get_current_user_id, hash_password, verify_password
 
 router = APIRouter()
 
@@ -57,3 +59,21 @@ def update_profile(
         "email": user.email,
         "is_verified": user.is_verified,
     }
+
+@router.post("/change-password")
+def change_password(
+    data: ChangePassword,
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not verify_password(data.current_password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    user.hashed_password = hash_password(data.new_password)
+    db.commit()
+
+    return {"message": "Password changed successfully"}

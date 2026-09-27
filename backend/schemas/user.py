@@ -17,3 +17,7 @@ class UserLogin(BaseModel):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
