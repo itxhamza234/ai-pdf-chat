@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from core.database import SessionLocal
-from schemas.user import UserSignup, OTPVerify
+from schemas.user import UserSignup, OTPVerify, UserLogin, ForgotPassword, ResetPassword
 from models.user import User
 from models.otp import OTP
-from core.security import hash_password
+from core.security import hash_password, verify_password, create_access_token
 from core.email import generate_otp, send_otp_email
+
 
 router = APIRouter()
 
@@ -79,3 +80,71 @@ def verify_email(data: OTPVerify, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Email verified successfully"}
+
+
+@router.post("/login")
+def login(data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email first")
+
+    token = create_access_token({"sub": str(user.id), "email": user.email})
+
+    return {"access_token": token, "token_type": "bearer"}
+
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPassword, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        return {"message": "If this email is registered, an OTP has been sent."}
+
+    otp_code = generate_otp()
+    new_otp = OTP(
+        user_id=user.id,
+        code=otp_code,
+        purpose="password_reset",
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+    )
+    db.add(new_otp)
+    db.commit()
+
+    await send_otp_email(user.email, otp_code)
+
+    return {"message": "If this email is registered, an OTP has been sent."}
+
+
+@router.post("/reset-password")
+def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    otp_record = (
+        db.query(OTP)
+        .filter(
+            OTP.user_id == user.id,
+            OTP.code == data.otp,
+            OTP.purpose == "password_reset",
+            OTP.is_used == False,
+        )
+        .order_by(OTP.created_at.desc())
+        .first()
+    )
+
+    if not otp_record:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    if otp_record.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    user.hashed_password = hash_password(data.new_password)
+    otp_record.is_used = True
+    db.commit()
+
+    return {"message": "Password reset successfully"}

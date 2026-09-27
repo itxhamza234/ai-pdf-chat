@@ -7,6 +7,7 @@ from schemas.user import UserUpdate
 from schemas.user import UserUpdate, ChangePassword
 from core.security import get_current_user_id, hash_password, verify_password
 
+
 router = APIRouter()
 
 def get_db():
