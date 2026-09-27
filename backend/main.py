@@ -7,6 +7,7 @@ from routers.auth import router as auth_router
 from routers.user import router as user_router
 from models.pdf import PDFDocument
 from models.chunk import PDFChunk
+from routers.pdf import router as pdf_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,6 +15,7 @@ app = FastAPI()
 
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(user_router, prefix="/user", tags=["User"])
+app.include_router(pdf_router, prefix="/pdf", tags=["PDF"])
 
 @app.get("/health")
 def health():
