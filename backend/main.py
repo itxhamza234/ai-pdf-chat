@@ -5,6 +5,8 @@ from models.user import User
 from models.otp import OTP
 from routers.auth import router as auth_router
 from routers.user import router as user_router
+from models.pdf import PDFDocument
+from models.chunk import PDFChunk
 
 Base.metadata.create_all(bind=engine)
 
