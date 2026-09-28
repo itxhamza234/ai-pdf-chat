@@ -74,3 +74,25 @@ async def upload_pdf(
         "pdf_id": new_pdf.id,
         "chunks_created": len(chunks),
     }
+
+@router.get("/list")
+def list_pdfs(user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    pdfs = db.query(PDFDocument).filter(PDFDocument.user_id == user_id).all()
+    return [{"id" : pdf.id, "filename":pdf.filename, "uploaded_at": pdf.uploaded_at}for pdf in pdfs]
+
+
+@router.delete("/{pdf_id}")
+def delete_pdf(pdf_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db) ):
+    pdf = db.query(PDFDocument).filter(PDFDocument.id == pdf_id, PDFDocument.user_id == user_id).first()
+    if not pdf:
+        raise HTTPException(status_code=404, detail="PDF not found")
+
+    db.query(PDFChunk).filter(PDFChunk.pdf_id == pdf_id).delete()
+
+    if os.path.exists(pdf.file_path):
+        os.remove(pdf.file_path)
+
+    db.delete(pdf)
+    db.commit()
+
+    return {"message": "PDF deleted successfully"}
