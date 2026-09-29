@@ -1,6 +1,7 @@
+import re
+from core.mcp_client import call_word_definition
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from pydantic import BaseModel
 from google import genai
 import os
@@ -27,10 +28,19 @@ class ChatRequest(BaseModel):
     question: str
 
 @router.post("/ask")
-def ask(data: ChatRequest, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+async def ask(data: ChatRequest, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     pdf = db.query(PDFDocument).filter(PDFDocument.id == data.pdf_id, PDFDocument.user_id == user_id).first()
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
+
+    match = re.search(r"(?:meaning of|define|what does)\s+([a-zA-Z]+)", data.question, re.IGNORECASE)
+    if match:
+        word = match.group(1)
+        definition = await call_word_definition(word)
+        answer = f"{word}: {definition}"
+        db.add(ChatMessage(pdf_id=data.pdf_id, user_id=user_id, question=data.question, answer=answer))
+        db.commit()
+        return {"answer": answer}
 
     q_embedding = generate_embedding(data.question)
 
