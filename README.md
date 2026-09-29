@@ -114,3 +114,10 @@ Make sure you have **Docker Desktop**, **Python 3.11+**, and **Node.js** install
 2. **Data Privacy:** Each uploaded PDF and chat history is mapped to a specific `user_id` in the database. This ensures that one logged-in user can never see or access another user's documents.
 3. **Handling Hallucinations:** I added a strict system prompt to Gemini so that it only answers from the PDF text chunks provided to it. If the answer is missing from the document, it safely says "I could not find this information in the selected document."
 4. **Why MCP?** For common programming or general words, using an external LLM costs API tokens. A local regex routing checks the question type and instantly answers using the local MCP server, making it faster and free.
+
+
+## 🗄️ Database Schema
+
+![ER Diagram](docs/er_diagram.png)
+
+The full SQL schema is available in [`docs/database_schema.sql`](docs/database_schema.sql).
