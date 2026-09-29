@@ -11,5 +11,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  mcp-server:
+    build: ./mcp-server
+    container_name: mcp_server
+    ports:
+      - "8001:8001"
+
 volumes:
   pgdata:
