@@ -60,8 +60,11 @@ Context:
 
 Question: {data.question}"""
 
-    response = client.models.generate_content(model="gemini-3.8-flash", contents=prompt)
-    answer = response.text
+    try:
+        response = client.models.generate_content(model="gemini-3.8-flash", contents=prompt)
+        answer = response.text
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI service is temporarily busy. Please try again in a moment.")
 
     db.add(ChatMessage(pdf_id=data.pdf_id, user_id=user_id, question=data.question, answer=answer))
     db.commit()

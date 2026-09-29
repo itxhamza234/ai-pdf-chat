@@ -17,5 +17,19 @@ services:
     ports:
       - "8001:8001"
 
+  backend:
+    build: ./backend
+    container_name: pdf_chat_backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/pdf_chat_db
+      MCP_URL: http://mcp-server:8001/mcp
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - mcp-server
+
 volumes:
   pgdata:

@@ -1,7 +1,8 @@
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client as streamable_http_client
+import os
 
-MCP_URL = "http://localhost:8001/mcp"
+MCP_URL = os.getenv("MCP_URL", "http://localhost:8001/mcp")
 
 async def call_word_definition(word: str) -> str:
     async with streamable_http_client(MCP_URL) as (read, write, _):
