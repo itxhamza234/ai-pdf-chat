@@ -108,3 +108,5 @@ Make sure you have **Docker Desktop** installed on your laptop. You will also ne
 * **Why MCP?** For common programming or general words, using an external LLM costs API tokens. A local regex routing checks the question type and instantly answers using the local MCP server, making it faster and free.
 * **Containerized Machine Learning:** To fulfill the assignment's operational constraints, the entire infrastructure is bundled within Docker Compose. Local embedding execution (`sentence-transformers`) runs strictly within the backend container, ensuring the app works perfectly on any laptop running Docker without needing local python setup.
 
+*  **Demonstration video**
+https://drive.google.com/file/d/1h5Y-vgwvRsqMmfQUgkRFlr19YF6hMkhm/view?usp=sharing
