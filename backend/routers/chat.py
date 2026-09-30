@@ -16,6 +16,14 @@ from models.chat import ChatMessage
 router = APIRouter()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
+# questions like "what is X", "define X", "meaning of X", "what does X mean"
+DEFINE_PATTERNS = [
+    r"^what(?:'s| is)\s+([a-zA-Z]+)\??$",
+    r"^(?:define|meaning of|definition of)\s+([a-zA-Z]+)\??$",
+    r"^what does\s+([a-zA-Z]+)\s+mean\??$",
+]
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -23,9 +31,20 @@ def get_db():
     finally:
         db.close()
 
+
+def find_word(question: str):
+    question = question.strip()
+    for pattern in DEFINE_PATTERNS:
+        match = re.match(pattern, question, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    return None
+
+
 class ChatRequest(BaseModel):
     pdf_id: int
     question: str
+
 
 @router.post("/ask")
 async def ask(data: ChatRequest, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
@@ -33,14 +52,18 @@ async def ask(data: ChatRequest, user_id: int = Depends(get_current_user_id), db
     if not pdf:
         raise HTTPException(status_code=404, detail="PDF not found")
 
-    match = re.search(r"(?:meaning of|define|what does)\s+([a-zA-Z]+)", data.question, re.IGNORECASE)
-    if match:
-        word = match.group(1)
-        definition = await call_word_definition(word)
-        answer = f"{word}: {definition}"
-        db.add(ChatMessage(pdf_id=data.pdf_id, user_id=user_id, question=data.question, answer=answer))
-        db.commit()
-        return {"answer": answer}
+    # simple word questions go to the MCP tool, no need for Gemini
+    word = find_word(data.question)
+    if word:
+        try:
+            definition = await call_word_definition(word)
+            answer = f"{word}: {definition}"
+            db.add(ChatMessage(pdf_id=data.pdf_id, user_id=user_id, question=data.question, answer=answer))
+            db.commit()
+            return {"answer": answer}
+        except Exception:
+            # if the MCP server is down, just answer from the PDF
+            pass
 
     q_embedding = generate_embedding(data.question)
 
@@ -70,6 +93,7 @@ Question: {data.question}"""
     db.commit()
 
     return {"answer": answer}
+
 
 @router.get("/history/{pdf_id}")
 def get_history(pdf_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
